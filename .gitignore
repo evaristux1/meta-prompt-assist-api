@@ -1,0 +1,54 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.db
+
+# Environment variables
+.env
+*.env
+
+# Virtualenv
+venv/
+env/
+ENV/
+.venv/
+
+# IDE configurations
+.vscode/
+.idea/
+
+# Migrations
+migrations/
+
+# Test coverage
+.coverage
+*.coveragerc
+.tox/
+.nox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.hypothesis/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# PyCharm
+.idea/
+
+# MyPy
+.mypy_cache/
+
+# Other files to ignore
+*.bak
+*.swp
+*.swo
+
+# FastAPI specific files (if you are using Docker)
+docker-compose.yml
+
