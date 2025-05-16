@@ -9,7 +9,11 @@ router = APIRouter()
 def process_prompt(request: PromptRequest):
     reform1, reform2 = generate_reformulations(request.prompt)
     report = evaluate_reformulations(reform1, reform2)
+
     return PromptResponse(
-        optimized_prompt=report["best_version"],
-        evaluation_report=report
+        version1=report["version1"],
+        version2=report["version2"],
+        evaluationData=report["evaluationData"],
+        winningVersion=report["winningVersion"],
+        justification=report["justification"]
     )
