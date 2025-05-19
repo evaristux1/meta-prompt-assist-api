@@ -7,7 +7,7 @@ app = FastAPI()
 # Liberar o React para consumir a API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend
+    allow_origins=["http://localhost:8080"],  # Frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

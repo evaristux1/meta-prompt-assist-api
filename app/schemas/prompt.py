@@ -1,25 +1,29 @@
-from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, Field
 
 class PromptRequest(BaseModel):
-    prompt: str
+    prompt: str = Field(..., min_length=1, description="O prompt original a ser processado.")
+    generation_model_type: str = Field("gemini", description="Tipo de modelo para gerar reformulações (ex: 'gemini', 'openai', 'groq').")
+    judge_model_type: str = Field("gemini", description="Tipo de modelo para avaliar as reformulações (ex: 'gemini', 'openai', 'groq').")
 
-class PromptRequest(BaseModel):
-    prompt: str
-
-class PromptVersion(BaseModel):
+class VersionInfo(BaseModel):
     title: str
     content: str
 
-class EvaluationCriteria(BaseModel):
+class EvaluationDataItem(BaseModel):
     subject: str
-    version1: int
-    version2: int
-    fullMark: int
+    original: float 
+    version1: float 
+    version2: float 
+    fullMark: float = Field(10.0)
 
 class PromptResponse(BaseModel):
-    version1: PromptVersion
-    version2: PromptVersion
-    evaluationData: List[EvaluationCriteria]
-    winningVersion: int
-    justification: str
+    original_prompt: str
+    version1: Optional[VersionInfo] = None
+    version2: Optional[VersionInfo] = None
+    evaluationData: Optional[List[EvaluationDataItem]] = None
+    winningVersion: Optional[int] = None
+    justification: Optional[str] = None
+    error: Optional[str] = None
+    raw_judge_output: Optional[str] = None # Para depuração, se houver erro na avaliação
+
