@@ -25,5 +25,22 @@ class PromptResponse(BaseModel):
     winningVersion: Optional[int] = None
     justification: Optional[str] = None
     error: Optional[str] = None
-    raw_judge_output: Optional[str] = None # Para depuração, se houver erro na avaliação
+    raw_judge_output: Optional[str] = None 
 
+
+
+class SinglePromptRequest(BaseModel):
+    prompt: str
+    judge_model_type: Optional[str] = "gemini"
+
+
+class EvaluationItem(BaseModel):
+    subject: str
+    score: int
+    fullMark: int
+
+
+class SinglePromptResponse(BaseModel):
+    prompt: str
+    evaluationData: List[EvaluationItem]
+    justification: str

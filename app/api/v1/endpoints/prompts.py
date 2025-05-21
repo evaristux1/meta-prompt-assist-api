@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
-from app.schemas.prompt import PromptRequest, PromptResponse, VersionInfo # Importe os schemas atualizados
+from app.schemas.prompt import PromptRequest, PromptResponse, SinglePromptRequest, SinglePromptResponse, VersionInfo # Importe os schemas atualizados
 from app.services.prompt_engineering import generate_reformulations, ReformulationError # Importe o serviço e a exceção
-from app.services.prompt_judge import evaluate_reformulations # Seu serviço de avaliação
+from app.services.prompt_judge import evaluate_reformulations, evaluate_single_prompt # Seu serviço de avaliação
 
 router = APIRouter()
 
@@ -72,3 +72,28 @@ async def process_prompt(request: PromptRequest):
         justification=evaluation_report.get("justification")
     )
 
+@router.post("/avaliar-prompt",
+             response_model=SinglePromptResponse,
+             summary="Avalia um único prompt com base nos critérios",
+             tags=["Prompt Judge"])
+async def avaliar_prompt(request: SinglePromptRequest):
+    """
+    Avalia um único prompt com base nos critérios técnicos, linguísticos e éticos.
+    Utiliza o modelo especificado em `judge_model_type`.
+    """
+    evaluation = evaluate_single_prompt(
+        prompt=request.prompt,
+        judge_model_type=request.judge_model_type
+    )
+
+    if "error" in evaluation:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro na avaliação: {evaluation['error']}"
+        )
+
+    return SinglePromptResponse(
+        prompt=evaluation["prompt"],
+        evaluationData=evaluation["evaluationData"],
+        justification=evaluation["justification"]
+    )

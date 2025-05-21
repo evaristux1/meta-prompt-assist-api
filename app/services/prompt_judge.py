@@ -41,7 +41,7 @@ Reformulação 2:
 RESPONDA EXCLUSIVAMENTE NO SEGUINTE FORMATO JSON. NÃO ADICIONE NENHUM TEXTO ANTES OU DEPOIS DO JSON.
 O JSON DEVE SER COMPLETO E VÁLIDO.
 
-Exemplo de formato de saída JSON esperado, não inclua o exemplo abaixo na sua resposta, nem sempre a reformulação 2 é a melhor:
+Exemplo de formato de saída JSON esperado, não inclua o exemplo abaixo na sua resposta:
 {{
   "evaluationData": [
     {{ "subject": "Clareza e Especificidade", "original": 7, "version1": 8, "version2": 9, "fullMark": 10 }},
@@ -159,5 +159,108 @@ def evaluate_reformulations(
         },
         "evaluationData": evaluation_result.get("evaluationData", []),
         "winningVersion": evaluation_result.get("winningVersion"), 
+        "justification": evaluation_result.get("justification", "Sem justificativa fornecida pela LLM.")
+    }
+
+def evaluate_single_prompt(
+    prompt: str,
+    judge_model_type: str = "gemini",
+    judge_model_name: str = None
+):
+    """
+    Avalia um único prompt com base nos 10 critérios definidos.
+    Retorna pontuações e justificativa.
+    """
+    error_msg_prefix = f"evaluate_single_prompt (judge_model: {judge_model_type}):"
+    if not settings.API_KEY_JUDGE:
+        raise ValueError(f"{error_msg_prefix} API_KEY_JUDGE não encontrada.")
+
+    try:
+        judge_llm_provider = LLMProvider(model_type=judge_model_type, api_key_override=settings.API_KEY_JUDGE)
+        judge_llm = judge_llm_provider.get_llm_instance()
+
+        if judge_model_name:
+            if hasattr(judge_llm, 'model_name'):
+                judge_llm.model_name = judge_model_name
+            elif hasattr(judge_llm, 'model'):
+                judge_llm.model = judge_model_name
+
+    except ValueError as ve:
+        return {
+            "error": f"{error_msg_prefix} Falha ao inicializar o LLM avaliador: {ve}",
+            "raw_output": ""
+        }
+
+    # Template específico para avaliação de 1 prompt
+    SINGLE_EVAL_TEMPLATE = """
+Você é um avaliador especialista em engenharia de prompts. Avalie o texto abaixo com base nos 10 critérios listados.
+
+Texto:
+\"\"\"
+{prompt}
+\"\"\"
+
+Critérios de Avaliação:
+1. Clareza e Especificidade
+2. Estrutura e Organização
+3. Consistência Interna
+4. Contextualização
+5. Parâmetros de Execução
+6. Eficiência Linguística
+7. Robustez
+8. Adaptabilidade
+9. Preparação e Enquadramento
+10. Princípios Éticos
+
+Responda EXCLUSIVAMENTE em JSON no seguinte formato:
+{{
+  "evaluationData": [
+    {{ "subject": "Clareza e Especificidade", "score": 8, "fullMark": 10 }},
+    ...
+  ],
+  "justification": "O prompt apresentou excelente clareza, organização e especificidade, porém faltou contextualização e definição de parâmetros."
+}}
+"""
+
+    prompt_template = PromptTemplate(
+        template=SINGLE_EVAL_TEMPLATE,
+        input_variables=["prompt"],
+        template_format="f-string"
+    )
+
+    evaluation_chain: RunnableSequence = prompt_template | judge_llm | StrOutputParser()
+
+    raw_json_output_str = ""
+    cleaned_json_str = ""
+    try:
+        print(f"{error_msg_prefix} Invocando avaliação de prompt único...")
+        raw_json_output_str = evaluation_chain.invoke({"prompt": prompt})
+
+        cleaned_json_str = raw_json_output_str.strip()
+        if cleaned_json_str.startswith("```json"):
+            cleaned_json_str = cleaned_json_str[7:].strip("`").strip()
+
+        if not cleaned_json_str.startswith("{") or not cleaned_json_str.endswith("}"):
+            print(f"{error_msg_prefix} JSON mal formatado:\n{cleaned_json_str}")
+
+        evaluation_result = json.loads(cleaned_json_str)
+        print(f"{error_msg_prefix} JSON decodificado com sucesso.")
+
+    except json.JSONDecodeError as e:
+        return {
+            "error": f"{error_msg_prefix} Falha ao decodificar JSON: {e}",
+            "raw_output": raw_json_output_str
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {
+            "error": f"{error_msg_prefix} Erro inesperado: {e}",
+            "raw_output": raw_json_output_str
+        }
+
+    return {
+        "prompt": prompt,
+        "evaluationData": evaluation_result.get("evaluationData", []),
         "justification": evaluation_result.get("justification", "Sem justificativa fornecida pela LLM.")
     }
